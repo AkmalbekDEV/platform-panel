@@ -26,12 +26,15 @@ import {
 import axios from 'axios';
 import { BsArrowLeftCircle } from 'react-icons/bs';
 import { useNavigate } from 'react-router-dom';
+import { ImInfo } from 'react-icons/im';
 
 const Users = () => {
   const [data, setData] = useState([]);
-  const [newUser, setNewUser] = useState({ fullName: '', email: '' });
+  const [newUser, setNewUser] = useState({ fullName: '', email: '', password: '', paymentStatus: false, results: [] });
+  const [selectedUser, setSelectedUser] = useState(null);
   const toast = useToast();
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen: isResultOpen, onOpen: onResultOpen, onClose: onResultClose } = useDisclosure();
   const navigate = useNavigate();
 
   const getData = async () => {
@@ -96,21 +99,37 @@ const Users = () => {
   };
 
   const handleAddUser = async () => {
-    try {
-      await axios.post('https://7b763fe74e4b87ba.mokky.dev/users', newUser);
+    if (newUser.fullName === '' || newUser.password === '' || newUser.email === '' || !newUser.email.includes('@mathkids.com')) {
       toast({
         duration: 5000,
         isClosable: true,
-        status: 'success',
         position: 'top',
-        title: 'Yangi foydalanuvchi qo\'shildi!',
-      });
-      setNewUser({ fullName: '', email: '' }); // Reset form
-      onClose(); // Close modal
-      getData(); // Refresh data
-    } catch (error) {
-      console.log(error.message);
+        status: 'error',
+        title: "Barcha ma'lumotlar to'g'ri kiritilmagan!"
+      })
+    } else {
+      try {
+        await axios.post('https://7b763fe74e4b87ba.mokky.dev/users', newUser);
+        toast({
+          duration: 5000,
+          isClosable: true,
+          status: 'success',
+          position: 'top',
+          title: 'Yangi foydalanuvchi qo\'shildi!',
+        });
+        setNewUser({ fullName: '', email: '', password: '' }); // Reset form
+        onClose(); // Close modal
+        getData(); // Refresh data
+      } catch (error) {
+        console.log(error.message);
+      }
     }
+  };
+
+  const handleShowResults = (user) => {
+    setSelectedUser(user); // Tanlangan foydalanuvchini saqlash
+    onResultOpen(); // Modalni ochish
+    console.log(selectedUser)
   };
 
   useEffect(() => {
@@ -169,6 +188,13 @@ const Users = () => {
                 >
                   O'chirish
                 </Button>
+                <Button
+                  onClick={() => handleShowResults(item)}
+                  colorScheme="blue"
+                  leftIcon={<ImInfo />}
+                >
+                  Test natijalari
+                </Button>
               </PopoverBody>
             </PopoverContent>
           </Popover>
@@ -189,7 +215,7 @@ const Users = () => {
           <ModalBody>
             <VStack spacing={4}>
               <Input
-                placeholder="Full Name"
+                placeholder="Ism"
                 value={newUser.fullName}
                 onChange={(e) => setNewUser({ ...newUser, fullName: e.target.value })}
               />
@@ -198,6 +224,11 @@ const Users = () => {
                 value={newUser.email}
                 onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
               />
+              <Input
+                placeholder="Parol"
+                value={newUser.password}
+                onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+              />
             </VStack>
           </ModalBody>
           <ModalFooter>
@@ -205,6 +236,41 @@ const Users = () => {
               Qo'shish
             </Button>
             <Button onClick={onClose}>Bekor qilish</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* Modal for Showing Test Results */}
+      <Modal isOpen={isResultOpen} onClose={onResultClose}>
+        <ModalOverlay />
+        <ModalContent bgColor={'gray.700'} textColor={'white'} h={'80%'} maxW="85%">
+          <ModalHeader>Test Natijalari</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {selectedUser && selectedUser.results.map((result, index) => (
+                <div
+                  key={index}
+                  className="bg-white dark:bg-[#1F1D2B] shadow-md rounded-lg p-4 hover:shadow-lg transition-shadow duration-300"
+                >
+                  <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-300">
+                    {result.testName}
+                  </h2>
+                  <p className="text-gray-700 dark:text-gray-400 mt-2">
+                    <strong>Ball:</strong> {result.score} / {result.totalQuestions}
+                  </p>
+                  <p className="text-gray-700 dark:text-gray-400 mt-2">
+                    <strong>Umumiy savollar:</strong> {result.totalQuestions}
+                  </p>
+                  <p className="text-gray-700 dark:text-gray-400 mt-2">
+                    <strong>Sana:</strong> {result.date}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </ModalBody>
+          <ModalFooter>
+            <Button onClick={onResultClose}>Yopish</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
